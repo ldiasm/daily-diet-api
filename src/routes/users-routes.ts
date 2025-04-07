@@ -14,6 +14,9 @@ export async function usersRoutes(app: FastifyInstance) {
       firstName: z.string().nonempty('Nome não pode estar vazio'),
       lastName: z.string().nonempty('Sobrenome não pode estar vazio'),
       photoUrl: z.string().url().optional(),
+      weight: z.number().optional(),
+      height: z.number().optional(),
+      goal: z.enum(['Perder peso', 'Manter o peso', 'Ganhar peso']).optional(),
     })
 
     const validationResult = createUserBodySchema.safeParse(req.body)
@@ -24,7 +27,7 @@ export async function usersRoutes(app: FastifyInstance) {
       })
     }
 
-    const { email, password, firstName, lastName, photoUrl } = validationResult.data
+    const { email, password, firstName, lastName, photoUrl, weight, height, goal } = validationResult.data
 
     // Verifica se o email já está em uso
     const existingUser = await knex('users')
@@ -59,6 +62,9 @@ export async function usersRoutes(app: FastifyInstance) {
         photo_url: photoUrl,
         session_id: sessionId,
         first_name: firstName,
+        weight,
+        height,
+        goal,
       },
       '*',
     )
@@ -100,11 +106,15 @@ export async function usersRoutes(app: FastifyInstance) {
       })
     }
 
-    const sessionId = randomUUID()
-    res.cookie('sessionId', sessionId, {
-      path: '/',
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
-    })
+    let sessionId = req.cookies.sessionId
+
+    if (!sessionId) {
+      sessionId = randomUUID()
+      res.cookie('sessionId', sessionId, {
+        path: '/',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
+      })
+    }
 
     await knex('users')
       .where({ id: user.id })
@@ -113,106 +123,61 @@ export async function usersRoutes(app: FastifyInstance) {
     res.send({ user })
   })
 
-  app.get('/', async (req: FastifyRequest, res: FastifyReply) => {
-    const { firstName, lastName } = req.query as { firstName?: string; lastName?: string };
-    const { sessionId } = req.cookies;
+  app.get('/', { preHandler: [checkSessionIdSession] }, async (req: FastifyRequest, res: FastifyReply) => {
+    const { sessionId } = req.cookies
 
-    let query = knex('users')
-      .select('id', 'first_name', 'last_name', 'photo_url', 'email', 'created_at')
-      .orderBy('created_at', 'desc');
+    const users = await knex('users')
+      .where({ session_id: sessionId })
+      .select('id', 'first_name', 'last_name', 'email', 'photo_url', 'weight', 'height', 'goal')
 
-    // Se não houver parâmetros de busca e houver um cookie de sessão, retorna apenas o usuário autenticado
-    if (!firstName && !lastName && sessionId) {
-      query = query.where({ session_id: sessionId });
-    }
-    // Se houver parâmetros de busca, filtra por nome e sobrenome
-    else if (firstName && lastName) {
-      query = query.where({
-        first_name: firstName,
-        last_name: lastName,
-      });
-    }
-
-    const users = await query;
-
-    res.send({ users });
+    res.send({ users })
   })
 
-  app.get(
-    '/metrics',
-    {
-      preHandler: [checkSessionIdSession],
-    },
-    async (req: FastifyRequest, res: FastifyReply) => {
-      const { sessionId } = req.cookies
+  app.put('/profile', { preHandler: [checkSessionIdSession] }, async (req: FastifyRequest, res: FastifyReply) => {
+    const updateProfileSchema = z.object({
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+      photoUrl: z.string().url().optional(),
+      weight: z.number().optional(),
+      height: z.number().optional(),
+      goal: z.enum(['Perder peso', 'Manter o peso', 'Ganhar peso']).optional(),
+    })
 
-      const { id } = await knex('users')
-        .select('id')
-        .where({ session_id: sessionId })
-        .first()
+    const validationResult = updateProfileSchema.safeParse(req.body)
 
-      const meals = await knex('meals')
-        .select('on_diet')
-        .where({ user_id: id })
-        .orderBy('updated_at')
-
-      let bestSequence = 0
-      let currentSequence = 0
-
-      for (const meal of meals) {
-        if (meal.on_diet === 1) {
-          currentSequence++
-          bestSequence = Math.max(bestSequence, currentSequence)
-        } else {
-          currentSequence = 0
-        }
-      }
-
-      const onDiet = meals.filter((meal) => meal.on_diet).length
-
-      res.send({
-        total: meals.length,
-        onDiet,
-        offDiet: meals.length - onDiet,
-        bestSequence,
+    if (!validationResult.success) {
+      return res.status(400).send({
+        message: validationResult.error.errors,
       })
-    },
-  )
-
-  app.delete('/', async (req: FastifyRequest, res: FastifyReply) => {
-    const { sessionId } = req.cookies;
-
-    if (!sessionId) {
-      return res.status(401).send({
-        message: 'Não autorizado',
-      });
     }
+
+    const { sessionId } = req.cookies
+    const { firstName, lastName, photoUrl, weight, height, goal } = validationResult.data
 
     const user = await knex('users')
       .where({ session_id: sessionId })
-      .first();
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        photo_url: photoUrl,
+        weight,
+        height,
+        goal,
+        updated_at: new Date(),
+      })
+      .returning('*')
 
-    if (!user) {
-      return res.status(401).send({
-        message: 'Não autorizado',
-      });
-    }
+    res.send({ user })
+  })
 
-    // Deletar todas as refeições do usuário
-    await knex('meals')
-      .where({ user_id: user.id })
-      .delete();
+  app.delete('/', { preHandler: [checkSessionIdSession] }, async (req: FastifyRequest, res: FastifyReply) => {
+    const { sessionId } = req.cookies
 
-    // Deletar o usuário
     await knex('users')
-      .where({ id: user.id })
-      .delete();
+      .where({ session_id: sessionId })
+      .delete()
 
-    // Limpar o cookie de sessão
-    res.clearCookie('sessionId');
-
-    return res.status(200).send({
-      message: 'Conta deletada com sucesso',
-    });
-  });
+    res.clearCookie('sessionId')
+    res.status(204).send()
+  })
 }

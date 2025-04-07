@@ -13,11 +13,12 @@ export async function mealsRoutes(app: FastifyInstance) {
     },
     async (req: FastifyRequest, res: FastifyReply) => {
       const createMealBodySchema = z.object({
-        name: z.string(),
-        description: z.string(),
+        name: z.string().nonempty('Nome da refeição é obrigatório'),
+        description: z.string().nonempty('Descrição é obrigatória'),
         date: z.coerce.date(),
-        time: z.string(),
+        time: z.string().nonempty('Horário é obrigatório'),
         onDiet: z.boolean(),
+        calories: z.number().int().positive().optional(),
       })
 
       const validationResult = createMealBodySchema.safeParse(req.body)
@@ -28,7 +29,7 @@ export async function mealsRoutes(app: FastifyInstance) {
         })
       }
 
-      const { name, description, date, time, onDiet } = validationResult.data
+      const { name, description, date, time, onDiet, calories } = validationResult.data
 
       const { sessionId } = req.cookies
 
@@ -45,6 +46,7 @@ export async function mealsRoutes(app: FastifyInstance) {
           date: date.toISOString(),
           time,
           on_diet: onDiet,
+          calories,
           user_id: id,
         })
         .returning('*')
@@ -60,7 +62,7 @@ export async function mealsRoutes(app: FastifyInstance) {
     },
     async (req: FastifyRequest, res: FastifyReply) => {
       const editMealParams = z.object({
-        id: z.string(),
+        id: z.string().uuid('ID inválido'),
       })
 
       const editMealBodySchema = z.object({
@@ -69,64 +71,58 @@ export async function mealsRoutes(app: FastifyInstance) {
         date: z.coerce.date().optional(),
         time: z.string().optional(),
         onDiet: z.boolean().optional(),
+        calories: z.number().int().positive().optional(),
       })
 
-      const validationResult = editMealBodySchema.safeParse(req.body)
+      const paramsResult = editMealParams.safeParse(req.params)
+      const bodyResult = editMealBodySchema.safeParse(req.body)
 
-      if (!validationResult.success) {
+      if (!paramsResult.success) {
         return res.status(400).send({
-          message: validationResult.error.errors,
+          message: paramsResult.error.errors,
         })
       }
 
-      const { id } = editMealParams.parse(req.params)
-      const { name, description, date, time, onDiet } = validationResult.data
+      if (!bodyResult.success) {
+        return res.status(400).send({
+          message: bodyResult.error.errors,
+        })
+      }
+
+      const { id } = paramsResult.data
+      const { name, description, date, time, onDiet, calories } = bodyResult.data
+
+      const { sessionId } = req.cookies
+
+      const { id: userId } = await knex('users')
+        .select('id')
+        .where({ session_id: sessionId })
+        .first()
 
       const meal = await knex('meals')
-        .select('*')
-        .where({ id })
+        .where({ id, user_id: userId })
         .first()
+
+      if (!meal) {
+        return res.status(404).send({
+          message: 'Refeição não encontrada',
+        })
+      }
+
+      const updatedMeal = await knex('meals')
+        .where({ id })
         .update({
           name,
           description,
-          date,
+          date: date?.toISOString(),
           time,
           on_diet: onDiet,
+          calories,
           updated_at: new Date(),
         })
         .returning('*')
 
-      res.status(200).send({ meal })
-    },
-  )
-
-  app.delete(
-    '/:id',
-    {
-      preHandler: [checkSessionIdSession],
-    },
-    async (req: FastifyRequest, res: FastifyReply) => {
-      const deleteMealParams = z.object({
-        id: z.string(),
-      })
-
-      const { id } = deleteMealParams.parse(req.params)
-
-      await knex('meals').where({ id }).del()
-
-      res.status(204).send()
-    },
-  )
-
-  app.get(
-    '/all',
-    async (req: FastifyRequest, res: FastifyReply) => {
-      const meals = await knex('meals')
-        .select('meals.*', 'users.first_name', 'users.last_name')
-        .join('users', 'meals.user_id', 'users.id')
-        .orderBy('meals.date', 'desc')
-
-      res.status(200).send({ meals })
+      res.status(200).send({ meal: updatedMeal })
     },
   )
 
@@ -144,11 +140,11 @@ export async function mealsRoutes(app: FastifyInstance) {
         .first()
 
       const meals = await knex('meals')
-        .select('*')
         .where({ user_id: id })
         .orderBy('date', 'desc')
+        .orderBy('time', 'desc')
 
-      res.status(200).send({ meals })
+      res.send({ meals })
     },
   )
 
@@ -159,9 +155,18 @@ export async function mealsRoutes(app: FastifyInstance) {
     },
     async (req: FastifyRequest, res: FastifyReply) => {
       const getMealParams = z.object({
-        id: z.string(),
+        id: z.string().uuid('ID inválido'),
       })
 
+      const paramsResult = getMealParams.safeParse(req.params)
+
+      if (!paramsResult.success) {
+        return res.status(400).send({
+          message: paramsResult.error.errors,
+        })
+      }
+
+      const { id } = paramsResult.data
       const { sessionId } = req.cookies
 
       const { id: userId } = await knex('users')
@@ -169,14 +174,138 @@ export async function mealsRoutes(app: FastifyInstance) {
         .where({ session_id: sessionId })
         .first()
 
-      const { id } = getMealParams.parse(req.params)
-
       const meal = await knex('meals')
-        .select('*')
         .where({ id, user_id: userId })
         .first()
 
-      res.status(200).send({ meal })
+      if (!meal) {
+        return res.status(404).send({
+          message: 'Refeição não encontrada',
+        })
+      }
+
+      res.send({ meal })
+    },
+  )
+
+  app.delete(
+    '/:id',
+    {
+      preHandler: [checkSessionIdSession],
+    },
+    async (req: FastifyRequest, res: FastifyReply) => {
+      const deleteMealParams = z.object({
+        id: z.string().uuid('ID inválido'),
+      })
+
+      const paramsResult = deleteMealParams.safeParse(req.params)
+
+      if (!paramsResult.success) {
+        return res.status(400).send({
+          message: paramsResult.error.errors,
+        })
+      }
+
+      const { id } = paramsResult.data
+      const { sessionId } = req.cookies
+
+      const { id: userId } = await knex('users')
+        .select('id')
+        .where({ session_id: sessionId })
+        .first()
+
+      const meal = await knex('meals')
+        .where({ id, user_id: userId })
+        .first()
+
+      if (!meal) {
+        return res.status(404).send({
+          message: 'Refeição não encontrada',
+        })
+      }
+
+      await knex('meals')
+        .where({ id })
+        .delete()
+
+      res.status(204).send()
+    },
+  )
+
+  app.get(
+    '/metrics',
+    {
+      preHandler: [checkSessionIdSession],
+    },
+    async (req: FastifyRequest, res: FastifyReply) => {
+      const { sessionId } = req.cookies
+
+      const { id } = await knex('users')
+        .select('id')
+        .where({ session_id: sessionId })
+        .first()
+
+      const meals = await knex('meals')
+        .select('on_diet')
+        .where({ user_id: id })
+        .orderBy('date', 'desc')
+        .orderBy('time', 'desc')
+
+      let bestSequence = 0
+      let currentSequence = 0
+
+      for (const meal of meals) {
+        if (meal.on_diet) {
+          currentSequence++
+          bestSequence = Math.max(bestSequence, currentSequence)
+        } else {
+          currentSequence = 0
+        }
+      }
+
+      const onDiet = meals.filter((meal) => meal.on_diet).length
+
+      res.send({
+        total: meals.length,
+        onDiet,
+        offDiet: meals.length - onDiet,
+        bestSequence,
+      })
+    },
+  )
+
+  app.get(
+    '/metrics/daily',
+    {
+      preHandler: [checkSessionIdSession],
+    },
+    async (req: FastifyRequest, res: FastifyReply) => {
+      const { sessionId } = req.cookies
+
+      const { id } = await knex('users')
+        .select('id')
+        .where({ session_id: sessionId })
+        .first()
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      const meals = await knex('meals')
+        .select('*')
+        .where({ user_id: id })
+        .where('date', '>=', today.toISOString())
+        .orderBy('time', 'desc')
+
+      const onDiet = meals.filter((meal) => meal.on_diet).length
+      const totalCalories = meals.reduce((acc, meal) => acc + (meal.calories || 0), 0)
+
+      res.send({
+        total: meals.length,
+        onDiet,
+        offDiet: meals.length - onDiet,
+        totalCalories,
+        meals,
+      })
     },
   )
 }
