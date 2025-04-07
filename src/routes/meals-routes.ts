@@ -119,6 +119,18 @@ export async function mealsRoutes(app: FastifyInstance) {
   )
 
   app.get(
+    '/all',
+    async (req: FastifyRequest, res: FastifyReply) => {
+      const meals = await knex('meals')
+        .select('meals.*', 'users.first_name', 'users.last_name')
+        .join('users', 'meals.user_id', 'users.id')
+        .orderBy('meals.date', 'desc')
+
+      res.status(200).send({ meals })
+    },
+  )
+
+  app.get(
     '/',
     {
       preHandler: [checkSessionIdSession],
