@@ -7,6 +7,8 @@ export async function checkSessionIdSession(
   const sessionId = req.cookies.sessionId
 
   if (!sessionId) {
-    return reply.status(401).send({ error: 'Unauthorized' })
+    return reply.status(401).send({
+      message: 'Não autorizado. Cookie de sessão não encontrado.'
+    })
   }
 }

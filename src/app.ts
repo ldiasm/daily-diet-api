@@ -6,24 +6,35 @@ import { usersRoutes } from './routes/users-routes'
 
 export const app = fastify()
 
-// Handler para requisições OPTIONS (preflight)
-app.options('*', (request, reply) => {
-  reply.header('Access-Control-Allow-Origin', 'http://localhost:5173')
-  reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  reply.header('Access-Control-Allow-Headers', 'Content-Type')
-  reply.header('Access-Control-Allow-Credentials', 'true')
-  reply.send()
-})
+const FRONTEND_URL = process.env.NODE_ENV === 'production'
+  ? 'https://seu-dominio.com'
+  : 'http://localhost:5173'
 
+// Registrar o plugin de cookie antes de configurar o CORS
+app.register(cookie)
+
+// Configuração do CORS
 app.addHook('onRequest', (request, reply, done) => {
-  reply.header('Access-Control-Allow-Origin', 'http://localhost:5173')
+  // Permitir requisições de qualquer origem em desenvolvimento
+  const origin = request.headers.origin || '*'
+
+  reply.header('Access-Control-Allow-Origin', origin)
   reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   reply.header('Access-Control-Allow-Headers', 'Content-Type')
   reply.header('Access-Control-Allow-Credentials', 'true')
   done()
 })
 
-app.register(cookie)
+// Handler para requisições OPTIONS (preflight)
+app.options('*', (request, reply) => {
+  const origin = request.headers.origin || '*'
+
+  reply.header('Access-Control-Allow-Origin', origin)
+  reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  reply.header('Access-Control-Allow-Headers', 'Content-Type')
+  reply.header('Access-Control-Allow-Credentials', 'true')
+  reply.send()
+})
 
 app.register(mealsRoutes, {
   prefix: '/meals',

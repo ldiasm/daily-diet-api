@@ -47,6 +47,9 @@ export async function usersRoutes(app: FastifyInstance) {
       res.cookie('sessionId', sessionId, {
         path: '/',
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
       })
     }
 
@@ -113,6 +116,9 @@ export async function usersRoutes(app: FastifyInstance) {
       res.cookie('sessionId', sessionId, {
         path: '/',
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dias
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
       })
     }
 
@@ -177,7 +183,33 @@ export async function usersRoutes(app: FastifyInstance) {
       .where({ session_id: sessionId })
       .delete()
 
-    res.clearCookie('sessionId')
+    res.clearCookie('sessionId', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    })
     res.status(204).send()
+  })
+
+  app.post('/logout', async (req: FastifyRequest, res: FastifyReply) => {
+    const { sessionId } = req.cookies
+
+    if (sessionId) {
+      // Atualizar o sessionId no banco para null
+      await knex('users')
+        .where({ session_id: sessionId })
+        .update({ session_id: null })
+
+      // Limpar o cookie de sessão
+      res.clearCookie('sessionId', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      })
+    }
+
+    return res.status(200).send({ message: 'Logout realizado com sucesso' })
   })
 }
