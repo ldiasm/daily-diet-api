@@ -26,9 +26,9 @@ app.addHook('onRequest', (request, reply, done) => {
 app.register(cookie)
 
 app.register(mealsRoutes, {
-  prefix: 'meals',
+  prefix: '/meals',
 })
 
 app.register(usersRoutes, {
-  prefix: 'users',
+  prefix: '/users',
 })
