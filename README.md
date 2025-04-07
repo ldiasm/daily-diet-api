@@ -18,7 +18,7 @@ Você no controle da sua dieta!
   <a href="#daily-diet-api">Daily Diet API</a> •
   <a href="#instalação">Instalação</a> •
   <a href="#tecnologias">Tecnologias</a> •
-  <a href="#autor">Autor</a>  
+  <a href="#autor">Autor</a>
 </p>
 
 ## Sobre
@@ -27,39 +27,56 @@ Projeto desenvolvido durante o desafio do módulo II do bootcamp Ignite da Rocke
 
 ## Daily Diet API
 
-A API proposta nesse desafio tem como cliente um aplicativo criado em React Native o qual pode ser visto no link abaixo:
+API para o aplicativo Daily Diet, um sistema de acompanhamento de dieta diária.
 
-[![Figma badge](https://img.shields.io/badge/Figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white)](https://www.figma.com/community/file/1218573349379609244)
+## Funcionalidades
 
-O propósito desse repositório é conter o código da API dessa aplicação, colocando todo o conteúdo aprendido durante o módulo em prática e cumprir as regras abaixo para a API:
+### Autenticação
+- Criação de conta com email e senha
+- Login com email e senha
+- Autenticação via cookies
+- Atualização de perfil
+- Exclusão de conta
 
-### Regras da aplicação
+### Perfil do Usuário
+- Nome e sobrenome
+- Email
+- Foto de perfil
+- Peso
+- Altura
+- Meta de peso
 
-- [x] Deve ser possível criar um usuário.
-- [x] Deve ser possível identificar o usuário entre as requisições.
-- [x] Deve ser possível registrar uma refeição feita, com as seguintes informações:
+### Refeições
+- Criação de refeições
+- Atualização de refeições
+- Exclusão de refeições
+- Listagem de refeições
+- Detalhes de uma refeição
+- Registro de calorias
 
-  > ⚠ _As refeições devem ser relacionadas a um usuário._
-
-  - Nome.
-  - Descrição.
-  - Data e Hora.
-  - Está dentro ou não da dieta.
-
-- [x] Deve ser possível editar uma refeição, podendo alterar todos os dados acima.
-- [x] Deve ser possível apagar uma refeição.
-- [x] Deve ser possível listar todas as refeições de um usuário.
-- [x] Deve ser possível visualizar uma única refeição.
-- [x] Deve ser possível recuperar as métricas de um usuário:
-  - Quantidade total de refeições registradas
-  - Quantidade total de refeições dentro da dieta
-  - Quantidade total de refeições fora da dieta
+### Métricas
+- Total de refeições
+- Refeições dentro/fora da dieta
   - Melhor sequência de refeições dentro da dieta
-- [x] O usuário só pode visualizar, editar e apagar as refeições o qual ele criou.
+- Métricas diárias (refeições e calorias)
 
-As requisições para testar a API estão disponíveis no botão abaixo:
+## Rotas
 
-[![Run in Insomnia}](https://insomnia.rest/images/run.svg)](https://insomnia.rest/run/?label=nodejs-api-rest&uri=https://github.com/MrRioja/daily-diet-api/blob/5ce27c804a857c0eddfddbc2fa6ebf1cd621cc76/.github/diet-api-requests-collection.json)
+### Usuários
+- `POST /users` - Criar conta
+- `POST /users/login` - Login
+- `PUT /users` - Atualizar perfil
+- `GET /users` - Buscar dados do usuário
+- `DELETE /users` - Excluir conta
+
+### Refeições
+- `POST /meals` - Criar refeição
+- `PUT /meals/:id` - Atualizar refeição
+- `DELETE /meals/:id` - Excluir refeição
+- `GET /meals` - Listar refeições
+- `GET /meals/:id` - Buscar refeição
+- `GET /meals/metrics` - Buscar métricas gerais
+- `GET /meals/metrics/daily` - Buscar métricas diárias
 
 ## Instalação
 
