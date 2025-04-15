@@ -1,5 +1,5 @@
 import { knex } from 'knex'
-import path from 'path'
+import path from 'node:path'
 
 export const config = {
   client: 'better-sqlite3',
