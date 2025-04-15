@@ -13,9 +13,12 @@ API RESTful para o aplicativo Daily Diet, um sistema de acompanhamento de dieta 
   <a href="#funcionalidades">Funcionalidades</a> •
   <a href="#tecnologias">Tecnologias</a> •
   <a href="#rotas">Rotas</a> •
+  <a href="#requisitos">Requisitos</a> •
   <a href="#instalação">Instalação</a> •
-  <a href="#testes">Testes</a> •
+  <a href="#banco-de-dados">Banco de Dados</a> •
   <a href="#desenvolvimento">Desenvolvimento</a> •
+  <a href="#testando-a-api">Testando a API</a> •
+  <a href="#solução-de-problemas">Solução de Problemas</a> •
   <a href="#licença">Licença</a>
 </p>
 
@@ -82,15 +85,20 @@ O Daily Diet API é um backend completo desenvolvido com Node.js, Fastify e Type
 |--------|------|-----------|--------------|
 | GET | `/meals/metrics` | Buscar métricas do usuário | Sim |
 
+## Requisitos
+
+Antes de começar, você precisa ter instalado:
+
+- Node.js (versão 16.x até 22.x)
+- Yarn (versão 1.22.x ou superior)
+- Git (para clonar o repositório)
+- Postman ou Insomnia (para testar a API)
+
 ## Instalação
 
-### Pré-requisitos
+### Configuração do Ambiente
 
-- [Node.js](https://nodejs.org/) (versão 16 ou superior)
-- [Yarn](https://yarnpkg.com/) ou [npm](https://www.npmjs.com/)
-- [Git](https://git-scm.com/)
-
-### Passos para instalação
+#### macOS e Linux
 
 1. Clone o repositório:
 ```bash
@@ -101,8 +109,6 @@ cd daily-diet-api
 2. Instale as dependências:
 ```bash
 yarn
-# ou
-npm install
 ```
 
 3. Configure as variáveis de ambiente:
@@ -110,32 +116,91 @@ npm install
 cp .env.example .env
 ```
 
-4. Execute as migrações do banco de dados:
+#### Windows
+
+1. Clone o repositório:
+```batch
+git clone https://github.com/ldiasm/daily-diet-api.git
+cd daily-diet-api
+```
+
+2. Instale as dependências:
+```batch
+yarn
+```
+
+3. Configure as variáveis de ambiente:
+```batch
+copy .env.example .env
+```
+
+## Banco de Dados
+
+1. Execute as migrações:
 ```bash
 yarn knex migrate:latest
-# ou
-npm run knex migrate:latest
 ```
 
-5. Inicie o servidor:
+> **Nota:** O projeto utiliza dois diretórios de migração: `db/migrations` e `database/migrations`. A configuração foi atualizada para considerar ambos.
+
+2. Se você já executou as migrações anteriormente e precisa garantir que todas sejam aplicadas (incluindo as de ambos os diretórios), execute:
+```bash
+# Reverter todas as migrações
+yarn knex migrate:rollback --all
+
+# Executar todas as migrações novamente
+yarn knex migrate:latest
+```
+
+3. Para verificar quais migrações já foram executadas:
+```bash
+yarn knex migrate:list
+```
+
+4. Para reverter as migrações:
+```bash
+yarn knex migrate:rollback
+```
+
+## Desenvolvimento
+
+### Iniciando o servidor
+
+Para iniciar o servidor de desenvolvimento:
+
 ```bash
 yarn dev
-# ou
-npm run dev
 ```
 
-O servidor estará disponível em: http://localhost:3333
+A API estará disponível em http://localhost:3333
+
+### Scripts disponíveis
+
+- `yarn dev` - Inicia o servidor de desenvolvimento
+- `yarn build` - Compila o projeto para produção
+- `yarn lint` - Executa o linter
+- `yarn knex` - Executa comandos do Knex.js
+
+### Estrutura do projeto
+
+```
+src/
+  ├── @types/            # Definições de tipos TypeScript
+  ├── database/          # Migrações e seeds do banco de dados
+  ├── env/               # Configuração de variáveis de ambiente
+  ├── middlewares/       # Middlewares do Fastify
+  ├── routes/            # Definições de rotas da API
+  ├── app.ts             # Configuração da aplicação Fastify
+  ├── database.ts        # Configuração do banco de dados
+  └── server.ts          # Ponto de entrada da aplicação
+```
 
 ## Testando a API
 
-Para testar a API, você pode usar o Postman, Insomnia ou qualquer outro cliente HTTP:
-
-1. Importe a coleção `daily-diet-collection.json` para o Postman/Insomnia
-2. Configure a variável de ambiente `baseURL=http://localhost:3333`
-3. Siga o fluxo das requisições:
-   - Crie um usuário
-   - Faça login para obter o cookie de sessão
-   - Acesse os endpoints de refeições
+1. Abra o Postman ou Insomnia
+2. Importe o arquivo `daily-diet-collection.json`
+3. Configure o ambiente "Dev" com a variável `baseURL=http://localhost:3333`
+4. Teste os endpoints disponíveis
 
 ### Exemplo de requisição para criar usuário:
 
@@ -162,71 +227,63 @@ Content-Type: application/json
 }
 ```
 
-## Testes
-
-Para adicionar testes ao projeto, você pode seguir estas etapas:
-
-1. Instale as dependências de teste:
-```bash
-yarn add -D jest @types/jest ts-jest supertest @types/supertest
-```
-
-2. Configure o Jest no package.json:
-```json
-"scripts": {
-  "test": "jest",
-  "test:coverage": "jest --coverage"
-}
-```
-
-3. Os exemplos de testes podem ser encontrados na pasta de exemplos:
-```
-docs/testing/api-tests/examples/
-```
-
-## Desenvolvimento
-
-### Scripts disponíveis
-
-- `yarn dev` - Inicia o servidor de desenvolvimento
-- `yarn build` - Compila o projeto para produção
-- `yarn lint` - Executa o linter
-- `yarn knex` - Executa comandos do Knex.js
-
-### Estrutura do projeto
-
-```
-src/
-  ├── @types/            # Definições de tipos TypeScript
-  ├── database/          # Migrações e seeds do banco de dados
-  ├── env/               # Configuração de variáveis de ambiente
-  ├── middlewares/       # Middlewares do Fastify
-  ├── routes/            # Definições de rotas da API
-  ├── app.ts             # Configuração da aplicação Fastify
-  ├── database.ts        # Configuração do banco de dados
-  └── server.ts          # Ponto de entrada da aplicação
-```
-
 ## Solução de Problemas
 
-### Porta 3333 em uso
+### Erros Comuns
 
-Altere a porta no arquivo `.env`:
-```
-PORT=3334
-```
+1. **Porta 3333 em uso**
+   - Verifique se não há outro processo usando a porta
+   - Altere a porta no arquivo .env
 
-### Erro nas migrações
+2. **Erro no banco de dados**
+   - Verifique se o diretório `db` existe
+   - Execute `yarn knex migrate:latest` novamente
 
-Verifique se o diretório `db` existe e tem permissões adequadas:
+3. **Erro ao iniciar o servidor**
+   - Verifique se todas as dependências foram instaladas
+   - Tente reinstalar com `yarn`
+
+4. **Erro ao importar coleção no Postman**
+   - Verifique se o arquivo da coleção existe
+   - Tente criar as requisições manualmente
+
+5. **Erro com TSX e Node.js 20.6.0 ou superior**
+   - Se você receber o erro "tsx must be loaded with --import instead of --loader", edite o arquivo `package.json`
+   - Altere o script "knex" para usar `--import tsx` em vez de `--loader tsx`
+   - Exemplo: `"knex": "node --no-warnings --import tsx ./node_modules/.bin/knex"`
+   - Exemplo de erro: `Error: tsx must be loaded with --import instead of --loader. The --loader flag was deprecated in Node v20.6.0`
+   - **Solução rápida**: Para execução única sem editar o package.json, use:
+     ```bash
+     node --no-warnings --import tsx ./node_modules/.bin/knex migrate:latest
+     ```
+
+6. **Problemas com migrações em diretórios diferentes**
+   - O projeto utiliza dois diretórios para migrações: `db/migrations` e `database/migrations`
+   - Para resolver problemas com migrações, execute a sequência completa:
+     ```bash
+     # Reverter todas as migrações existentes
+     yarn knex migrate:rollback --all
+
+     # Verificar se não há migrações pendentes
+     yarn knex migrate:list
+
+     # Executar todas as migrações novamente
+     yarn knex migrate:latest
+     ```
+
+### Logs e Debug
+
+Para ver logs mais detalhados:
+
+macOS/Linux:
 ```bash
-mkdir -p db
-yarn knex migrate:latest
+DEBUG=* yarn dev
 ```
 
-### Cookies não funcionando
-
-Verifique se está testando com um cliente que suporta cookies (como Postman) e se a opção de armazenar cookies está habilitada.
+Windows:
+```batch
+set DEBUG=* && yarn dev
+```
 
 ## Licença
 

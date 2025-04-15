@@ -8,7 +8,10 @@ export const config = {
   },
   useNullAsDefault: true,
   migrations: {
-    directory: path.resolve(__dirname, '../../db/migrations')
+    directory: [
+      path.resolve(__dirname, '../../database/migrations'),
+      path.resolve(__dirname, '../../db/migrations')
+    ]
   }
 }
 
