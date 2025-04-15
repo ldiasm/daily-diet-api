@@ -141,23 +141,14 @@ copy .env.example .env
 yarn knex migrate:latest
 ```
 
-> **Nota:** O projeto utiliza dois diretórios de migração: `db/migrations` e `database/migrations`. A configuração foi atualizada para considerar ambos.
+> **Nota:** Todas as migrações foram unificadas no diretório `db/migrations` para simplificar o processo.
 
-2. Se você já executou as migrações anteriormente e precisa garantir que todas sejam aplicadas (incluindo as de ambos os diretórios), execute:
-```bash
-# Reverter todas as migrações
-yarn knex migrate:rollback --all
-
-# Executar todas as migrações novamente
-yarn knex migrate:latest
-```
-
-3. Para verificar quais migrações já foram executadas:
+2. Para verificar quais migrações já foram executadas:
 ```bash
 yarn knex migrate:list
 ```
 
-4. Para reverter as migrações:
+3. Para reverter as migrações:
 ```bash
 yarn knex migrate:rollback
 ```
@@ -257,18 +248,18 @@ Content-Type: application/json
      node --no-warnings --import tsx ./node_modules/.bin/knex migrate:latest
      ```
 
-6. **Problemas com migrações em diretórios diferentes**
-   - O projeto utiliza dois diretórios para migrações: `db/migrations` e `database/migrations`
-   - Para resolver problemas com migrações, execute a sequência completa:
+6. **Erro de sintaxe nas migrações (SyntaxError: missing ) after argument list)**
+   - Este erro ocorre geralmente devido a problemas de sintaxe em arquivos de migração ou no knexfile
+   - Abra o arquivo knexfile.ts e verifique se há erros de sintaxe
+   - Verifique também os arquivos de migração no diretório `db/migrations`
+   - Se estiver no Windows, problemas com caminhos de diretório podem causar esse erro
+   - **Solução para Windows**: Execute o seguinte comando para migrar manualmente:
      ```bash
-     # Reverter todas as migrações existentes
-     yarn knex migrate:rollback --all
+     # No Windows, usando PowerShell
+     node --no-warnings --import=tsx -e "const { config } = require('./src/database'); const knex = require('knex')(config); knex.migrate.latest().then(() => { console.log('Migrações concluídas com sucesso!'); process.exit(0); }).catch((err) => { console.error('Erro nas migrações:', err); process.exit(1); });"
 
-     # Verificar se não há migrações pendentes
-     yarn knex migrate:list
-
-     # Executar todas as migrações novamente
-     yarn knex migrate:latest
+     # Ou usando o prompt de comando (cmd)
+     node --no-warnings --import=tsx -e "const { config } = require('./src/database'); const knex = require('knex')(config); knex.migrate.latest().then(() => { console.log('Migrações concluídas com sucesso!'); process.exit(0); }).catch((err) => { console.error('Erro nas migrações:', err); process.exit(1); });"
      ```
 
 ### Logs e Debug
