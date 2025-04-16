@@ -37,9 +37,9 @@ app.options('*', (request, reply) => {
 })
 
 app.register(mealsRoutes, {
-  prefix: '/meals',
+  prefix: '/v1/meals',
 })
 
 app.register(usersRoutes, {
-  prefix: '/users',
+  prefix: '/v1/users',
 })
